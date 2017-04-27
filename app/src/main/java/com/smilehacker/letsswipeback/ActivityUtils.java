@@ -1,11 +1,17 @@
 package com.smilehacker.letsswipeback;
 
 import android.app.Activity;
+import android.app.ActivityOptions;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.util.Log;
 import android.view.Display;
 import android.view.View;
+
+import java.lang.ref.WeakReference;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 
 /**
  * Created by kleist on 2017/4/26.
@@ -58,6 +64,63 @@ public class ActivityUtils {
                 (int) (bitmap565.getWidth() * 0.8), (int) (bitmap565.getHeight() * 0.8), false);
         bitmap565.recycle();
         return bitmapScaled;
+    }
+
+
+    public interface PageTranslucentListener {
+        void onPageTranslucent();
+    }
+
+    static class MyInvocationHandler implements InvocationHandler {
+        private static final String TAG = "MyInvocationHandler";
+        private WeakReference<PageTranslucentListener> listener;
+
+        public MyInvocationHandler(WeakReference<PageTranslucentListener> listener) {
+            this.listener = listener;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            Log.d(TAG, "invoke: end time: " + System.currentTimeMillis());
+            Log.d(TAG, "invoke: 被回调了");
+            try {
+                boolean success = (boolean) args[0];
+                if (success && listener.get() != null) {
+                    listener.get().onPageTranslucent();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
+
+    public static void convertActivityToTranslucentAfterL(Activity activity, PageTranslucentListener listener) {
+        Log.i("act util", "start make translucent");
+        try {
+            Method getActivityOptions = Activity.class.getDeclaredMethod("getActivityOptions");
+            getActivityOptions.setAccessible(true);
+            Object options = getActivityOptions.invoke(activity);
+
+            Class<?>[] classes = Activity.class.getDeclaredClasses();
+            Class<?> translucentConversionListenerClazz = null;
+            for (Class clazz : classes) {
+                if (clazz.getSimpleName().contains("TranslucentConversionListener")) {
+                    translucentConversionListenerClazz = clazz;
+                }
+            }
+
+
+            MyInvocationHandler myInvocationHandler = new MyInvocationHandler(new WeakReference<PageTranslucentListener>(listener));
+            Object obj = Proxy.newProxyInstance(Activity.class.getClassLoader(), new Class[]{translucentConversionListenerClazz}, myInvocationHandler);
+
+            Method convertToTranslucent = Activity.class.getDeclaredMethod("convertToTranslucent",
+                    translucentConversionListenerClazz, ActivityOptions.class);
+            convertToTranslucent.setAccessible(true);
+            Log.d("MyInvocationHandler", "start time: " + System.currentTimeMillis());
+            convertToTranslucent.invoke(activity, obj, options);
+        } catch (Throwable t) {
+        }
     }
 
 }
