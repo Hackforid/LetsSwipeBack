@@ -1,15 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.smilehacker.letsswipeback.SwipeLayout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/container"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/colorPrimary"
-        >
-    </FrameLayout>
+    android:layout_height="match_parent"
+    android:background="@color/colorAccent"
+    >
 
-</com.smilehacker.letsswipeback.SwipeLayout>
+    <Button
+        android:id="@+id/btn_trans"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="set trans"
+        android:layout_centerHorizontal="true"
+        />
+    <Button
+        android:id="@+id/btn_not_trans"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_trans"
+        android:layout_centerHorizontal="true"
+        android:text="set not trans"
+        />
+
+
+
+</RelativeLayout>

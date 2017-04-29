@@ -1,8 +1,13 @@
 package com.smilehacker.letsswipeback;
 
 import android.app.Activity;
-import android.util.SparseArray;
+import android.app.Application;
+import android.os.Bundle;
+import android.util.Log;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -13,11 +18,11 @@ import java.util.List;
 public class SwipeManager {
     private static SwipeManager mInstance;
 
-    private SparseArray<SwipeComponent> mSwipeComponents;
-    private List<SwipeComponent> mActivityStack;
+    private List<SwipePage> mPageStack;
+    private List<WeakReference<Activity>> mActivityStack;
 
     private SwipeManager() {
-        mSwipeComponents = new SparseArray<>();
+        mPageStack = new ArrayList<>();
         mActivityStack = new LinkedList<>();
     }
 
@@ -34,28 +39,131 @@ public class SwipeManager {
     }
 
     public void onCreate(Activity activity) {
-        SwipeComponent swipeComponent = mSwipeComponents.get(activity.hashCode());
-        if (swipeComponent == null) {
-            swipeComponent = new SwipeComponent();
-            swipeComponent.setActivity(activity);
-            mSwipeComponents.put(activity.hashCode(), swipeComponent);
+        SwipePage page = getPage(activity);
+        if (page == null) {
+            page = new SwipePage(activity);
+            mPageStack.add(page);
         }
-        mActivityStack.remove(swipeComponent);
-        mActivityStack.add(swipeComponent);
     }
 
     public void onPostCreate(Activity activity) {
-        SwipeComponent swipeComponent = mSwipeComponents.get(activity.hashCode());
-        SwipeLayout swipeLayout = new SwipeLayout(activity);
-        swipeLayout.attachToActivity(activity);
-        swipeComponent.setSwipeLayout(swipeLayout);
+        SwipePage page = getPage(activity);
+        if (page == null) {
+            return;
+        }
+        page.createSwipeContainer();
+    }
+
+    public void onResume(Activity activity) {
+        SwipePage page = getPage(activity);
+        if (page != null) {
+            Log.i("manager", "onResume page");
+            //page.setActivityTranslucent(true);
+            SwipePage prePage = getPrePage(activity);
+            if (prePage != null) {
+                prePage.setActivityTranslucent(false);
+            }
+        }
     }
 
     public void onDestroy(Activity activity) {
-        SwipeComponent swipeComponent = mSwipeComponents.get(activity.hashCode());
-        if (swipeComponent != null) {
-            mActivityStack.remove(swipeComponent);
-            mSwipeComponents.remove(activity.hashCode());
+        SwipePage page = getPage(activity);
+        if (page != null) {
+            mPageStack.remove(page);
         }
     }
+
+    public SwipePage getPage(Activity activity) {
+        for (SwipePage page : mPageStack) {
+            if (activity == page.getActivity()) {
+                return page;
+            }
+        }
+        return null;
+    }
+
+    public void registerApplication(Application application) {
+        application.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
+            @Override
+            public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+
+            }
+
+            @Override
+            public void onActivityStarted(Activity activity) {
+                pushActivityStack(activity);
+            }
+
+            @Override
+            public void onActivityResumed(Activity activity) {
+            }
+
+            @Override
+            public void onActivityPaused(Activity activity) {
+
+            }
+
+            @Override
+            public void onActivityStopped(Activity activity) {
+
+            }
+
+            @Override
+            public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+
+            }
+
+            @Override
+            public void onActivityDestroyed(Activity activity) {
+                removeActivityStack(activity);
+            }
+        });
+    }
+
+    private void pushActivityStack(Activity activity) {
+        removeActivityStack(activity);
+        mActivityStack.add(0, new WeakReference<Activity>(activity));
+    }
+
+    private void removeActivityStack(Activity activity) {
+        Iterator<WeakReference<Activity>> iterator = mActivityStack.iterator();
+        while (iterator.hasNext()) {
+            if (iterator.next().get() == activity) {
+                iterator.remove();
+                break;
+            }
+        }
+    }
+
+    public SwipePage getPrePage(Activity activity) {
+        Activity preAct = getPreActivity(activity);
+        if (preAct != null) {
+            return getPage(preAct);
+        } else {
+            Log.i("manager", "pre act is null");
+            return null;
+        }
+    }
+
+
+    private Activity getPreActivity(Activity activity) {
+        boolean findSelf = false;
+
+        Iterator<WeakReference<Activity>> iterator = mActivityStack.iterator();
+        while (iterator.hasNext()) {
+            Activity act = iterator.next().get();
+            if (act == null) {
+                iterator.remove();
+            } else {
+                if (findSelf) {
+                    return act;
+                } else if (act == activity) {
+                    findSelf = true;
+                }
+            }
+        }
+
+        return null;
+    }
+
 }

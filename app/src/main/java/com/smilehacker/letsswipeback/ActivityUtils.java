@@ -4,12 +4,14 @@ import android.app.Activity;
 import android.app.ActivityOptions;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.os.Build;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.Display;
 import android.view.View;
 
-import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
@@ -67,41 +69,55 @@ public class ActivityUtils {
     }
 
 
-    public interface PageTranslucentListener {
-        void onPageTranslucent();
+
+    public static boolean convertActivityFromTranslucent(Activity activity) {
+        try {
+            Method method = Activity.class.getDeclaredMethod("convertFromTranslucent");
+            method.setAccessible(true);
+            method.invoke(activity);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
-    static class MyInvocationHandler implements InvocationHandler {
-        private static final String TAG = "MyInvocationHandler";
-        private WeakReference<PageTranslucentListener> listener;
+    public interface TranslucentListener {
+        void onTranslucent();
+    }
 
-        public MyInvocationHandler(WeakReference<PageTranslucentListener> listener) {
+    private static class MyInvocationHandler implements InvocationHandler {
+        private TranslucentListener listener;
+
+        MyInvocationHandler(TranslucentListener listener) {
             this.listener = listener;
         }
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            Log.d(TAG, "invoke: end time: " + System.currentTimeMillis());
-            Log.d(TAG, "invoke: 被回调了");
             try {
                 boolean success = (boolean) args[0];
-                if (success && listener.get() != null) {
-                    listener.get().onPageTranslucent();
+                if (success && listener != null) {
+                    listener.onTranslucent();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Exception ignored) {
+                ignored.printStackTrace();
             }
             return null;
         }
     }
 
-    public static void convertActivityToTranslucentAfterL(Activity activity, PageTranslucentListener listener) {
-        Log.i("act util", "start make translucent");
-        try {
-            Method getActivityOptions = Activity.class.getDeclaredMethod("getActivityOptions");
-            getActivityOptions.setAccessible(true);
-            Object options = getActivityOptions.invoke(activity);
+    private static Method mTranslucentMethod;
+    private static Method mGetActivityOptionsMethod;
+    private static Object mObj;
+    private static SparseArray<TranslucentListener> mTranslucentListeners = new SparseArray<>();
+    public static void init() {
+        TranslucentListener listener = new TranslucentListener() {
+            @Override
+            public void onTranslucent() {
 
+            }
+        };
+        try {
             Class<?>[] classes = Activity.class.getDeclaredClasses();
             Class<?> translucentConversionListenerClazz = null;
             for (Class clazz : classes) {
@@ -110,16 +126,78 @@ public class ActivityUtils {
                 }
             }
 
+            MyInvocationHandler myInvocationHandler = new MyInvocationHandler(listener);
+            mObj = Proxy.newProxyInstance(Activity.class.getClassLoader(),
+                    new Class[] { translucentConversionListenerClazz }, myInvocationHandler);
 
-            MyInvocationHandler myInvocationHandler = new MyInvocationHandler(new WeakReference<PageTranslucentListener>(listener));
-            Object obj = Proxy.newProxyInstance(Activity.class.getClassLoader(), new Class[]{translucentConversionListenerClazz}, myInvocationHandler);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                mGetActivityOptionsMethod = Activity.class.getDeclaredMethod("getActivityOptions");
+                mGetActivityOptionsMethod.setAccessible(true);
 
-            Method convertToTranslucent = Activity.class.getDeclaredMethod("convertToTranslucent",
-                    translucentConversionListenerClazz, ActivityOptions.class);
-            convertToTranslucent.setAccessible(true);
-            Log.d("MyInvocationHandler", "start time: " + System.currentTimeMillis());
-            convertToTranslucent.invoke(activity, obj, options);
+                Method method = Activity.class.getDeclaredMethod("convertToTranslucent",
+                        translucentConversionListenerClazz, ActivityOptions.class);
+                method.setAccessible(true);
+                mTranslucentMethod = method;
+            } else {
+                Method method =
+                        Activity.class.getDeclaredMethod("convertToTranslucent", translucentConversionListenerClazz);
+                method.setAccessible(true);
+                mTranslucentMethod = method;
+            }
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+    }
+    public static void convertActivityToTranslucent2(Activity activity, final TranslucentListener listener) {
+        if (mTranslucentMethod == null) {
+            return;
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                mTranslucentListeners.put(listener.hashCode(), listener);
+                Object options = mGetActivityOptionsMethod.invoke(activity);
+                mTranslucentMethod.invoke(activity, mObj, options);
+            } else {
+                mTranslucentMethod.invoke(activity, mObj);
+            }
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void convertActivityToTranslucent(Activity activity, final TranslucentListener listener) {
+        try {
+            Class<?>[] classes = Activity.class.getDeclaredClasses();
+            Class<?> translucentConversionListenerClazz = null;
+            for (Class clazz : classes) {
+                if (clazz.getSimpleName().contains("TranslucentConversionListener")) {
+                    translucentConversionListenerClazz = clazz;
+                }
+            }
+
+            MyInvocationHandler myInvocationHandler = new MyInvocationHandler(listener);
+            Object obj = Proxy.newProxyInstance(Activity.class.getClassLoader(),
+                    new Class[] { translucentConversionListenerClazz }, myInvocationHandler);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Method getActivityOptions = Activity.class.getDeclaredMethod("getActivityOptions");
+                getActivityOptions.setAccessible(true);
+                Object options = getActivityOptions.invoke(activity);
+
+                Method method = Activity.class.getDeclaredMethod("convertToTranslucent",
+                        translucentConversionListenerClazz, ActivityOptions.class);
+                method.setAccessible(true);
+                method.invoke(activity, obj, options);
+            } else {
+                Method method =
+                        Activity.class.getDeclaredMethod("convertToTranslucent", translucentConversionListenerClazz);
+                method.setAccessible(true);
+                method.invoke(activity, obj);
+            }
         } catch (Throwable t) {
+            t.printStackTrace();
         }
     }
 

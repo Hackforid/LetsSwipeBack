@@ -1,6 +1,7 @@
 package com.smilehacker.letsswipeback;
 
 import android.animation.Animator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -24,6 +25,7 @@ public class SwipeLayout extends FrameLayout {
 
     private ViewConfiguration mViewConfiguration;
 
+    private boolean mEnableSwipe;
     private float mLastX;
     private float mLastY;
     private boolean mHasTouchEdge;
@@ -31,7 +33,7 @@ public class SwipeLayout extends FrameLayout {
 
     private boolean mAnimContentView;
     private boolean mIsFinish;
-    private boolean mIsActivityTranslucent;
+    private boolean mIsActivityTranslucent = true;
 
     private SwipeListener mSwipeListener;
 
@@ -50,6 +52,10 @@ public class SwipeLayout extends FrameLayout {
         mViewConfiguration = ViewConfiguration.get(context);
     }
 
+    public void setEnableSwipe(boolean enableSwipe) {
+        mEnableSwipe = enableSwipe;
+    }
+
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
@@ -63,11 +69,10 @@ public class SwipeLayout extends FrameLayout {
         Log.i(TAG, "intercept action=" + ev.getAction());
         switch (action) {
             case MotionEvent.ACTION_DOWN:
-                if (!isEnable()) {
-                    intercept = true;
-                    mHasTouchEdge = false;
-                } else {
-                    mHasTouchEdge = isEdgeActionDown(ev);
+                mHasTouchEdge = isEdgeActionDown(ev);
+                Log.i(TAG, "has touch edge=" + mHasTouchEdge);
+                if (mHasTouchEdge && mSwipeListener != null) {
+                    mSwipeListener.onStartSwipe();
                 }
                 mLastX = ev.getX();
                 mLastY = ev.getY();
@@ -96,6 +101,7 @@ public class SwipeLayout extends FrameLayout {
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 if (!isEnable()) {
+                    Log.i(TAG, "onTouchEvent is not enable");
                     handled = false;
                 }
                 break;
@@ -126,6 +132,9 @@ public class SwipeLayout extends FrameLayout {
 
     private void moveContentView(float position) {
         mContentView.setTranslationX(position);
+        if (mSwipeListener != null) {
+            mSwipeListener.onTranslationX(position);
+        }
     }
 
     private void checkReleaseEvent(float position) {
@@ -140,71 +149,90 @@ public class SwipeLayout extends FrameLayout {
         if (mContentView == null) {
             return;
         }
-        mContentView.animate()
-                .translationX(0)
-                .setListener(new Animator.AnimatorListener() {
+        final float startX = mContentView.getTranslationX();
+        ValueAnimator valueAnimator = ValueAnimator.ofFloat(0, startX);
+        valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float left = startX - (float) animation.getAnimatedValue();
+                mContentView.setTranslationX(left);
+                if (mSwipeListener != null) {
+                    mSwipeListener.onTranslationX(left);
+                }
+            }
+        });
+        valueAnimator.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                mAnimContentView = true;
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                post(new Runnable() {
                     @Override
-                    public void onAnimationStart(Animator animation) {
-                        mAnimContentView = true;
+                    public void run() {
+                        mAnimContentView = false;
                     }
+                });
+            }
 
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        post(new Runnable() {
-                            @Override
-                            public void run() {
-                                mAnimContentView = false;
-                            }
-                        });
-                    }
+            @Override
+            public void onAnimationCancel(Animator animation) {
 
-                    @Override
-                    public void onAnimationCancel(Animator animation) {
+            }
 
-                    }
+            @Override
+            public void onAnimationRepeat(Animator animation) {
 
-                    @Override
-                    public void onAnimationRepeat(Animator animation) {
-
-                    }
-                })
-                .start();
+            }
+        });
+        valueAnimator.start();
     }
 
     private void finishContentView() {
         if (mContentView == null) {
             return;
         }
-        mContentView.animate()
-                .translationX(getWidth())
-                .setListener(new Animator.AnimatorListener() {
+        ValueAnimator valueAnimator = ValueAnimator.ofFloat(mContentView.getTranslationX(), mContentView.getWidth());
+        valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float left = (float) animation.getAnimatedValue();
+                mContentView.setTranslationX(left);
+                if (mSwipeListener != null) {
+                    mSwipeListener.onTranslationX(left);
+                }
+            }
+        });
+        valueAnimator.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                mAnimContentView = true;
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                post(new Runnable() {
                     @Override
-                    public void onAnimationStart(Animator animation) {
-                        mAnimContentView = true;
+                    public void run() {
+                        mAnimContentView = false;
+                        callFinish();
                     }
+                });
+            }
 
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        post(new Runnable() {
-                            @Override
-                            public void run() {
-                                mAnimContentView = false;
-                                callFinish();
-                            }
-                        });
-                    }
+            @Override
+            public void onAnimationCancel(Animator animation) {
 
-                    @Override
-                    public void onAnimationCancel(Animator animation) {
+            }
 
-                    }
+            @Override
+            public void onAnimationRepeat(Animator animation) {
 
-                    @Override
-                    public void onAnimationRepeat(Animator animation) {
-
-                    }
-                })
-                .start();
+            }
+        });
+        valueAnimator.start();
     }
 
     private void callFinish() {
@@ -215,15 +243,18 @@ public class SwipeLayout extends FrameLayout {
     }
 
     private boolean isEnable() {
+        Log.i(TAG, "translucent=" + mIsActivityTranslucent);
         return mIsActivityTranslucent && !mAnimContentView && !mIsFinish;
     }
 
     public interface SwipeListener {
         void onSwipeAway();
+        void onTranslationX(float x);
+        void onStartSwipe();
     }
 
     public void setActivityTranslucent(boolean translucent) {
-        mIsActivityTranslucent = true;
+        mIsActivityTranslucent = translucent;
     }
 
     public void setListener(SwipeListener listener) {
@@ -231,21 +262,25 @@ public class SwipeLayout extends FrameLayout {
     }
 
     public void attachToActivity(Activity activity) {
-        if (getParent()!=null){
+        if (getParent() != null){
             return;
         }
-        TypedArray a = activity.getTheme().obtainStyledAttributes(new int[]{
+
+        ViewGroup.LayoutParams lp = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        this.setLayoutParams(lp);
+
+        TypedArray theme  = activity.getTheme().obtainStyledAttributes(new int[]{
                 android.R.attr.windowBackground
         });
-        int background = a.getResourceId(0, 0);
-        a.recycle();
+        int background = theme.getResourceId(0, 0);
+        theme.recycle();
 
-        ViewGroup decor = (ViewGroup) activity.getWindow().getDecorView();
-        View decorChild  = decor.getChildAt(0);
-        decorChild.setBackgroundResource(background);
-        decor.removeView(decorChild);
-        addView(decorChild);
-        mContentView = decorChild;
-        decor.addView(this);
+        ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
+        View contentView = decorView.getChildAt(0);
+        contentView.setBackgroundResource(background);
+        decorView.removeView(contentView);
+        addView(contentView);
+        mContentView = contentView;
+        decorView.addView(this);
     }
 }
