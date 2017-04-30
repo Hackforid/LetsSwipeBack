@@ -1,4 +1,4 @@
-package com.smilehacker.letsswipeback;
+package com.smilehacker.swipeback;
 
 import android.app.Activity;
 import android.app.Application;
@@ -52,18 +52,6 @@ public class SwipeManager {
             return;
         }
         page.createSwipeContainer();
-    }
-
-    public void onResume(Activity activity) {
-        SwipePage page = getPage(activity);
-        if (page != null) {
-            Log.i("manager", "onResume page");
-            //page.setActivityTranslucent(true);
-            SwipePage prePage = getPrePage(activity);
-            if (prePage != null) {
-                prePage.setActivityTranslucent(false);
-            }
-        }
     }
 
     public void onDestroy(Activity activity) {

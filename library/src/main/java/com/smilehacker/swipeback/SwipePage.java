@@ -1,4 +1,4 @@
-package com.smilehacker.letsswipeback;
+package com.smilehacker.swipeback;
 
 import android.app.Activity;
 import android.util.Log;
@@ -29,7 +29,7 @@ public class SwipePage {
         }
     }
 
-    public void setSwipeLayoutParallacX(float _x) {
+    public void setSwipeLayoutParallaxX(float _x) {
         if (mSwipeLayout == null) {
             return;
         }
@@ -65,7 +65,7 @@ public class SwipePage {
         mSwipeLayout.attachToActivity(mActivity);
         mSwipeLayout.setListener(new SwipeLayout.SwipeListener() {
             @Override
-            public void onSwipeAway() {
+            public void onSwipeFinish() {
                 mActivity.finish();
                 mActivity.overridePendingTransition(0, 0);
                 if (mPrePage != null) {
@@ -76,14 +76,22 @@ public class SwipePage {
             @Override
             public void onTranslationX(float x) {
                 if (mPrePage != null) {
-                    mPrePage.setSwipeLayoutParallacX(x);
+                    mPrePage.setSwipeLayoutParallaxX(x);
                 }
             }
 
             @Override
-            public void onStartSwipe() {
+            public void onSwipeStart() {
                 setActivityTranslucent(true);
                 mPrePage = SwipeManager.inst().getPrePage(mActivity);
+            }
+
+            @Override
+            public void onSwipeReset() {
+                setActivityTranslucent(false);
+                if (mPrePage != null) {
+                    mPrePage.setSwipeLayoutTranslationX(0);
+                }
             }
         });
     }
@@ -92,5 +100,7 @@ public class SwipePage {
         return mSwipeLayout;
     }
 
-
+    public void enableSwipe(boolean enable) {
+        mSwipeLayout.setEnableSwipe(enable);
+    }
 }

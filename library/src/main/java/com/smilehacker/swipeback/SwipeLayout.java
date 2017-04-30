@@ -1,4 +1,4 @@
-package com.smilehacker.letsswipeback;
+package com.smilehacker.swipeback;
 
 import android.animation.Animator;
 import android.animation.ValueAnimator;
@@ -25,7 +25,7 @@ public class SwipeLayout extends FrameLayout {
 
     private ViewConfiguration mViewConfiguration;
 
-    private boolean mEnableSwipe;
+    private boolean mEnableSwipe = true;
     private float mLastX;
     private float mLastY;
     private boolean mHasTouchEdge;
@@ -56,6 +56,10 @@ public class SwipeLayout extends FrameLayout {
         mEnableSwipe = enableSwipe;
     }
 
+    public boolean getEnableSwipe() {
+        return mEnableSwipe;
+    }
+
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
@@ -72,7 +76,7 @@ public class SwipeLayout extends FrameLayout {
                 mHasTouchEdge = isEdgeActionDown(ev);
                 Log.i(TAG, "has touch edge=" + mHasTouchEdge);
                 if (mHasTouchEdge && mSwipeListener != null) {
-                    mSwipeListener.onStartSwipe();
+                    mSwipeListener.onSwipeStart();
                 }
                 mLastX = ev.getX();
                 mLastY = ev.getY();
@@ -173,13 +177,19 @@ public class SwipeLayout extends FrameLayout {
                     @Override
                     public void run() {
                         mAnimContentView = false;
+                        if (mSwipeListener != null) {
+                            mSwipeListener.onSwipeReset();
+                        }
                     }
                 });
             }
 
             @Override
             public void onAnimationCancel(Animator animation) {
-
+                mAnimContentView = false;
+                if (mSwipeListener != null) {
+                    mSwipeListener.onSwipeReset();
+                }
             }
 
             @Override
@@ -224,7 +234,9 @@ public class SwipeLayout extends FrameLayout {
 
             @Override
             public void onAnimationCancel(Animator animation) {
-
+                if (mSwipeListener != null) {
+                    mSwipeListener.onSwipeReset();
+                }
             }
 
             @Override
@@ -238,18 +250,19 @@ public class SwipeLayout extends FrameLayout {
     private void callFinish() {
         mIsFinish = true;
         if (mSwipeListener != null) {
-            mSwipeListener.onSwipeAway();
+            mSwipeListener.onSwipeFinish();
         }
     }
 
     private boolean isEnable() {
-        return !mAnimContentView && !mIsFinish;
+        return !mAnimContentView && !mIsFinish && mEnableSwipe;
     }
 
     public interface SwipeListener {
-        void onSwipeAway();
+        void onSwipeFinish();
+        void onSwipeStart();
+        void onSwipeReset();
         void onTranslationX(float x);
-        void onStartSwipe();
     }
 
     public void setActivityTranslucent(boolean translucent) {
@@ -282,4 +295,5 @@ public class SwipeLayout extends FrameLayout {
         mContentView = contentView;
         decorView.addView(this);
     }
+
 }

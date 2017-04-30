@@ -2,6 +2,8 @@ package com.smilehacker.letsswipeback;
 
 import android.app.Application;
 
+import com.smilehacker.swipeback.SwipeManager;
+
 /**
  * @author kleist
  * @create 2017/4/29.

@@ -5,6 +5,9 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
 
+import com.smilehacker.swipeback.ActivityUtils;
+import com.smilehacker.swipeback.SwipeManager;
+
 /**
  * Created by kleist on 2017/4/27.
  */
@@ -62,7 +65,6 @@ public class Test3Activity extends BaseActivity {
     protected void onResume() {
         Log.i(TAG, "onResume");
         super.onResume();
-        SwipeManager.inst().onResume(this);
     }
 
 
