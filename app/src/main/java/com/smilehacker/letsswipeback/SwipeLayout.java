@@ -33,7 +33,7 @@ public class SwipeLayout extends FrameLayout {
 
     private boolean mAnimContentView;
     private boolean mIsFinish;
-    private boolean mIsActivityTranslucent = true;
+    private boolean mIsActivityTranslucent = false;
 
     private SwipeListener mSwipeListener;
 
@@ -101,13 +101,10 @@ public class SwipeLayout extends FrameLayout {
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 if (!isEnable()) {
-                    Log.i(TAG, "onTouchEvent is not enable");
                     handled = false;
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
-                Log.i(TAG, "action move");
-                Log.i(TAG, "is edge drag " + isEdgeDrag(ev));
                 if (mHasTouchEdge && isEdgeDrag(ev)) {
                     moveContentView(ev.getX());
                 }
@@ -131,6 +128,9 @@ public class SwipeLayout extends FrameLayout {
     }
 
     private void moveContentView(float position) {
+        if (!mIsActivityTranslucent) {
+            return;
+        }
         mContentView.setTranslationX(position);
         if (mSwipeListener != null) {
             mSwipeListener.onTranslationX(position);
@@ -243,8 +243,7 @@ public class SwipeLayout extends FrameLayout {
     }
 
     private boolean isEnable() {
-        Log.i(TAG, "translucent=" + mIsActivityTranslucent);
-        return mIsActivityTranslucent && !mAnimContentView && !mIsFinish;
+        return !mAnimContentView && !mIsFinish;
     }
 
     public interface SwipeListener {

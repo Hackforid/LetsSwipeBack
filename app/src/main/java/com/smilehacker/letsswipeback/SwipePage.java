@@ -37,7 +37,6 @@ public class SwipePage {
         float x = 1f * _x / width;
         float y = 0.2f * x * x + 0.3f * x - 0.5f;
         int left = (int) (y * width);
-        Log.i("page", "onParallacTransX=" + left);
         mSwipeLayout.setTranslationX(left);
     }
 
@@ -76,7 +75,6 @@ public class SwipePage {
 
             @Override
             public void onTranslationX(float x) {
-                Log.i("page", "onTransX=" + x);
                 if (mPrePage != null) {
                     mPrePage.setSwipeLayoutParallacX(x);
                 }
