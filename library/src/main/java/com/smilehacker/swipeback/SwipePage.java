@@ -71,6 +71,7 @@ public class SwipePage {
                 if (mPrePage != null) {
                     mPrePage.setSwipeLayoutTranslationX(0);
                 }
+                mPrePage = null;
             }
 
             @Override
@@ -92,6 +93,7 @@ public class SwipePage {
                 if (mPrePage != null) {
                     mPrePage.setSwipeLayoutTranslationX(0);
                 }
+                mPrePage = null;
             }
         });
     }
@@ -100,7 +102,7 @@ public class SwipePage {
         return mSwipeLayout;
     }
 
-    public void enableSwipe(boolean enable) {
+    public void setSwipeEnable(boolean enable) {
         mSwipeLayout.setEnableSwipe(enable);
     }
 }

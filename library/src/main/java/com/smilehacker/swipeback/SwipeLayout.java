@@ -100,13 +100,13 @@ public class SwipeLayout extends FrameLayout {
     public boolean onTouchEvent(MotionEvent ev) {
 
         boolean handled = true;
+        if (!isEnable()) {
+            return false;
+        }
 
         int action = ev.getAction();
         switch (action) {
             case MotionEvent.ACTION_DOWN:
-                if (!isEnable()) {
-                    handled = false;
-                }
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (mHasTouchEdge && isEdgeDrag(ev)) {
@@ -277,6 +277,7 @@ public class SwipeLayout extends FrameLayout {
         if (getParent() != null){
             return;
         }
+        activity.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
 
         ViewGroup.LayoutParams lp = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         this.setLayoutParams(lp);
