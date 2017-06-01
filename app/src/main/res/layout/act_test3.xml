@@ -6,6 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/colorAccent"
+    android:clipChildren="false"
     >
 
     <Button
@@ -23,6 +24,22 @@
         android:layout_centerHorizontal="true"
         android:text="set not trans"
         />
+
+    <FrameLayout
+        android:layout_below="@id/btn_not_trans"
+        android:layout_marginLeft="30dp"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:background="#fff"
+        >
+        <View
+            android:layout_width="20dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/shadow1"
+            android:layout_marginLeft="-10dp"
+            />
+
+    </FrameLayout>
 
 
 

@@ -16,6 +16,9 @@ import java.util.List;
  */
 
 public class SwipeManager {
+
+    private final static String TAG = "SwipeManager";
+
     private static SwipeManager mInstance;
 
     private List<SwipePage> mPageStack;
@@ -38,27 +41,22 @@ public class SwipeManager {
         return mInstance;
     }
 
-    public void onCreate(Activity activity) {
+    // must call in onPostCreate
+    public void createPage(Activity activity) {
         SwipePage page = getPage(activity);
         if (page == null) {
             page = new SwipePage(activity);
             mPageStack.add(page);
         }
-    }
-
-    public void onPostCreate(Activity activity) {
-        SwipePage page = getPage(activity);
-        if (page == null) {
-            return;
-        }
         page.createSwipeContainer();
     }
 
-    public void onDestroy(Activity activity) {
+    private void onDestroy(Activity activity) {
         SwipePage page = getPage(activity);
         if (page != null) {
             mPageStack.remove(page);
         }
+        removeActivityStack(activity);
     }
 
     public SwipePage getPage(Activity activity) {
@@ -74,26 +72,29 @@ public class SwipeManager {
         application.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
             @Override
             public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-
-            }
-
-            @Override
-            public void onActivityStarted(Activity activity) {
+                Log.d(TAG, "create");
                 pushActivityStack(activity);
             }
 
             @Override
+            public void onActivityStarted(Activity activity) {
+                Log.d(TAG, "start");
+            }
+
+            @Override
             public void onActivityResumed(Activity activity) {
+                Log.d(TAG, "resumed");
+                pushActivityStack(activity);
             }
 
             @Override
             public void onActivityPaused(Activity activity) {
-
+                Log.d(TAG, "paused");
             }
 
             @Override
             public void onActivityStopped(Activity activity) {
-
+                Log.d(TAG, "stop");
             }
 
             @Override
@@ -103,12 +104,13 @@ public class SwipeManager {
 
             @Override
             public void onActivityDestroyed(Activity activity) {
-                removeActivityStack(activity);
+                Log.d(TAG, "destroy");
+                onDestroy(activity);
             }
         });
     }
 
-    private void pushActivityStack(Activity activity) {
+    public void pushActivityStack(Activity activity) {
         removeActivityStack(activity);
         mActivityStack.add(0, new WeakReference<Activity>(activity));
     }
@@ -116,7 +118,10 @@ public class SwipeManager {
     private void removeActivityStack(Activity activity) {
         Iterator<WeakReference<Activity>> iterator = mActivityStack.iterator();
         while (iterator.hasNext()) {
-            if (iterator.next().get() == activity) {
+            WeakReference<Activity> ref = iterator.next();
+            if (ref.get() == null) {
+                iterator.remove();
+            } else if (ref.get() == activity) {
                 iterator.remove();
                 break;
             }
@@ -134,7 +139,7 @@ public class SwipeManager {
     }
 
 
-    private Activity getPreActivity(Activity activity) {
+    public Activity getPreActivity(Activity activity) {
         boolean findSelf = false;
 
         Iterator<WeakReference<Activity>> iterator = mActivityStack.iterator();

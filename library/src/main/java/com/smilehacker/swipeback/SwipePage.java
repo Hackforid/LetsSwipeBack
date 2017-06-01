@@ -2,6 +2,8 @@ package com.smilehacker.swipeback;
 
 import android.app.Activity;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
 
 /**
  * Created by kleist on 2017/4/27.
@@ -29,7 +31,15 @@ public class SwipePage {
         }
     }
 
-    public void setSwipeLayoutParallaxX(float _x) {
+    public void setPreActivityContentTranslationX(float x) {
+        Activity activity = SwipeManager.inst().getPreActivity(mActivity);
+        if (activity != null) {
+            View content = ((ViewGroup) activity.getWindow().getDecorView()).getChildAt(0);
+            content.setTranslationX(x);
+        }
+    }
+
+    public void setPreActivityParallaxX(float _x) {
         if (mSwipeLayout == null) {
             return;
         }
@@ -37,7 +47,7 @@ public class SwipePage {
         float x = 1f * _x / width;
         float y = 0.2f * x * x + 0.3f * x - 0.5f;
         int left = (int) (y * width);
-        mSwipeLayout.setTranslationX(left);
+        setPreActivityContentTranslationX(left);
     }
 
     public void setActivityTranslucent(boolean translucent) {
@@ -61,39 +71,47 @@ public class SwipePage {
         }
     }
 
+
     public void createSwipeContainer() {
         mSwipeLayout.attachToActivity(mActivity);
         mSwipeLayout.setListener(new SwipeLayout.SwipeListener() {
             @Override
             public void onSwipeFinish() {
                 mActivity.finish();
-                mActivity.overridePendingTransition(0, 0);
-                if (mPrePage != null) {
-                    mPrePage.setSwipeLayoutTranslationX(0);
+                if (mIsTranslucent) {
+                    setPreActivityContentTranslationX(0);
+                    mActivity.overridePendingTransition(0, 0);
+                } else {
+                    mActivity.overridePendingTransition(R.anim.swipe_in, R.anim.swipe_away);
                 }
-                mPrePage = null;
+//                if (mPrePage != null) {
+//                    mPrePage.setSwipeLayoutTranslationX(0);
+//                }
+//                mPrePage = null;
             }
 
             @Override
             public void onTranslationX(float x) {
-                if (mPrePage != null) {
-                    mPrePage.setSwipeLayoutParallaxX(x);
-                }
+//                if (mPrePage != null) {
+//                    mPrePage.setSwipeLayoutParallaxX(x);
+//                }
+                setPreActivityParallaxX(x);
             }
 
             @Override
             public void onSwipeStart() {
                 setActivityTranslucent(true);
-                mPrePage = SwipeManager.inst().getPrePage(mActivity);
+//                mPrePage = SwipeManager.inst().getPrePage(mActivity);
             }
 
             @Override
             public void onSwipeReset() {
                 setActivityTranslucent(false);
-                if (mPrePage != null) {
-                    mPrePage.setSwipeLayoutTranslationX(0);
-                }
-                mPrePage = null;
+//                if (mPrePage != null) {
+//                    mPrePage.setSwipeLayoutTranslationX(0);
+//                }
+//                mPrePage = null;
+                setPreActivityContentTranslationX(0);
             }
         });
     }

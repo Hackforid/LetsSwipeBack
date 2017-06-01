@@ -5,6 +5,8 @@ import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
@@ -14,6 +16,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 
 /**
  * Created by kleist on 2017/4/27.
@@ -37,6 +40,9 @@ public class SwipeLayout extends FrameLayout {
 
     private SwipeListener mSwipeListener;
 
+    private View mShadowView;
+
+    private final int SHADOW_WIDTH = 50;
 
     public SwipeLayout(@NonNull Context context) {
         this(context, null);
@@ -50,6 +56,10 @@ public class SwipeLayout extends FrameLayout {
         super(context, attrs, defStyleAttr);
 
         mViewConfiguration = ViewConfiguration.get(context);
+
+        setClipChildren(false);
+
+        addShadow();
     }
 
     public void setEnableSwipe(boolean enableSwipe) {
@@ -58,6 +68,19 @@ public class SwipeLayout extends FrameLayout {
 
     public boolean getEnableSwipe() {
         return mEnableSwipe;
+    }
+
+    private void addShadow() {
+        ImageView img = new ImageView(getContext());
+        int[] colors=new int[]{0x00000000, 0x17000000, 0x43000000};
+        Drawable drawable =new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,colors);
+//        img.setImageDrawable(getResources().getDrawable(R.drawable.shadow));
+        img.setImageDrawable(drawable);
+        LayoutParams lp = new LayoutParams(SHADOW_WIDTH, ViewGroup.LayoutParams.MATCH_PARENT);
+        img.setLayoutParams(lp);
+        addView(img);
+
+        mShadowView = img;
     }
 
     @Override
@@ -83,8 +106,8 @@ public class SwipeLayout extends FrameLayout {
                 break;
             case MotionEvent.ACTION_MOVE:
                 Log.i(TAG, "action move");
-                Log.i(TAG, "is edge drag " + isEdgeDrag(ev));
-                if (mHasTouchEdge && isEdgeDrag(ev)) {
+                Log.i(TAG, "is edge drag " + isHorizontalDrag(ev));
+                if (mHasTouchEdge && isHorizontalDrag(ev)) {
                     intercept = true;
                 }
                 break;
@@ -109,7 +132,7 @@ public class SwipeLayout extends FrameLayout {
             case MotionEvent.ACTION_DOWN:
                 break;
             case MotionEvent.ACTION_MOVE:
-                if (mHasTouchEdge && isEdgeDrag(ev)) {
+                if (mHasTouchEdge && isHorizontalDrag(ev)) {
                     moveContentView(ev.getX());
                 }
                 break;
@@ -123,7 +146,7 @@ public class SwipeLayout extends FrameLayout {
 
     }
 
-    private boolean isEdgeDrag(MotionEvent ev) {
+    private boolean isHorizontalDrag(MotionEvent ev) {
         return (Math.abs(ev.getX() - mLastX) > Math.abs(ev.getY() - mLastY));
     }
 
@@ -136,6 +159,7 @@ public class SwipeLayout extends FrameLayout {
             return;
         }
         mContentView.setTranslationX(position);
+        mShadowView.setTranslationX(position - SHADOW_WIDTH + 3);
         if (mSwipeListener != null) {
             mSwipeListener.onTranslationX(position);
         }
@@ -159,10 +183,12 @@ public class SwipeLayout extends FrameLayout {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 float left = startX - (float) animation.getAnimatedValue();
-                mContentView.setTranslationX(left);
-                if (mSwipeListener != null) {
-                    mSwipeListener.onTranslationX(left);
-                }
+                moveContentView(left);
+//                mContentView.setTranslationX(left);
+//                mShadowView.setTranslationX(left - 20);
+//                if (mSwipeListener != null) {
+//                    mSwipeListener.onTranslationX(left);
+//                }
             }
         });
         valueAnimator.addListener(new Animator.AnimatorListener() {
@@ -204,15 +230,21 @@ public class SwipeLayout extends FrameLayout {
         if (mContentView == null) {
             return;
         }
+        if (!mIsActivityTranslucent) {
+            callFinish();
+            return;
+        }
         ValueAnimator valueAnimator = ValueAnimator.ofFloat(mContentView.getTranslationX(), mContentView.getWidth());
         valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 float left = (float) animation.getAnimatedValue();
-                mContentView.setTranslationX(left);
-                if (mSwipeListener != null) {
-                    mSwipeListener.onTranslationX(left);
-                }
+                moveContentView(left);
+//                mContentView.setTranslationX(left);
+//                mShadowView.setTranslationX(left-20);
+//                if (mSwipeListener != null) {
+//                    mSwipeListener.onTranslationX(left);
+//                }
             }
         });
         valueAnimator.addListener(new Animator.AnimatorListener() {

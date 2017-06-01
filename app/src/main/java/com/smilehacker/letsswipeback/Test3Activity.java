@@ -20,8 +20,6 @@ public class Test3Activity extends BaseActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.act_test3);
-        SwipeManager.inst().onCreate(this);
-//        SwipeManager.inst().getPage(this).getSwipeLayout().setActivityTranslucent(true);
 
         findViewById(R.id.btn_trans).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -52,7 +50,7 @@ public class Test3Activity extends BaseActivity {
     @Override
     protected void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        SwipeManager.inst().onPostCreate(this);
+        SwipeManager.inst().createPage(this);
     }
 
     @Override
@@ -65,12 +63,12 @@ public class Test3Activity extends BaseActivity {
     protected void onResume() {
         Log.i(TAG, "onResume");
         super.onResume();
+
     }
 
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        SwipeManager.inst().onDestroy(this);
     }
 }
