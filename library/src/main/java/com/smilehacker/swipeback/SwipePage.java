@@ -15,6 +15,8 @@ public class SwipePage {
     private SwipeLayout mSwipeLayout;
     private SwipePage mPrePage;
     private boolean mIsTranslucent;
+    private boolean mEnableResetTranslucent = true;
+    private boolean mEnablePreParallaxMove = true;
 
     public SwipePage(Activity activity) {
         mActivity = activity;
@@ -31,6 +33,14 @@ public class SwipePage {
         }
     }
 
+    public void setEnableResetTranslucent(boolean reset) {
+        mEnableResetTranslucent = reset;
+    }
+
+    public void setEnablePreParallaxMove(boolean enable) {
+        mEnablePreParallaxMove = enable;
+    }
+
     public void setPreActivityContentTranslationX(float x) {
         Activity activity = SwipeManager.inst().getPreActivity(mActivity);
         if (activity != null) {
@@ -40,7 +50,7 @@ public class SwipePage {
     }
 
     public void setPreActivityParallaxX(float _x) {
-        if (mSwipeLayout == null) {
+        if (mSwipeLayout == null || !mEnablePreParallaxMove) {
             return;
         }
         int width = mSwipeLayout.getWidth();
@@ -84,33 +94,23 @@ public class SwipePage {
                 } else {
                     mActivity.overridePendingTransition(R.anim.swipe_in, R.anim.swipe_away);
                 }
-//                if (mPrePage != null) {
-//                    mPrePage.setSwipeLayoutTranslationX(0);
-//                }
-//                mPrePage = null;
             }
 
             @Override
             public void onTranslationX(float x) {
-//                if (mPrePage != null) {
-//                    mPrePage.setSwipeLayoutParallaxX(x);
-//                }
                 setPreActivityParallaxX(x);
             }
 
             @Override
             public void onSwipeStart() {
                 setActivityTranslucent(true);
-//                mPrePage = SwipeManager.inst().getPrePage(mActivity);
             }
 
             @Override
             public void onSwipeReset() {
-                setActivityTranslucent(false);
-//                if (mPrePage != null) {
-//                    mPrePage.setSwipeLayoutTranslationX(0);
-//                }
-//                mPrePage = null;
+                if (mEnableResetTranslucent) {
+                    setActivityTranslucent(false);
+                }
                 setPreActivityContentTranslationX(0);
             }
         });
