@@ -38,12 +38,6 @@ public class Test3Activity extends BaseActivity {
                 ActivityUtils.convertActivityFromTranslucent(Test3Activity.this);
             }
         });
-//        ActivityUtils.convertActivityToTranslucent(this, new ActivityUtils.TranslucentListener() {
-//            @Override
-//            public void onTranslucent() {
-//                Log.i(TAG, "+++++++++++++=");
-//            }
-//        });
     }
 
 
